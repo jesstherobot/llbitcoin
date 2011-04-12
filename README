@@ -1,0 +1,29 @@
+Project: bitcoin
+
+Description: a bitcoin implementation on an FPGA
+
+-Communication between the FPGA and the host computer is through a serial port
+
+
+-TODO:
+
+4/11/2011:
+	-Verify the UART is working at 9600 baud 
+		-toggle LED based on receiving data
+		-toggle LED when a specific byte is received
+		-return a byte back to the host
+	-Build a "input handler" module
+		-this will wrap around the UART input component, will parse all the 
+		information in an easy to digest format for the controller
+	-Build a "output handler" module
+		-this will wrap around the UART output component, will receive commands and data in a buffer, this data will be shifted out a byte at a time to the host
+	-Build the "SHA256 Controller"
+		-read formatted data from the "input handler"
+		-execute commands received from the host
+		-sends an "I'm alive" pulse every 1 second
+		-if any match has been found this response is sent to "output handler"
+
+
+-Credit:
+	-Give credit to the uart module we used from OpenCores.org
+	-Give credit to the SHA256 module we used from OpenCores.org
