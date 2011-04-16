@@ -37,7 +37,7 @@ module sha2_controller(
    reg [7:0] 	    tx_byte;
    //goes high when a byte is received
    wire 	    received;
-   //setto the value of the byte which has just been recoved when recived is raised
+   //set to the value of the byte which has just been recoved when recived is raised
    wire [7:0] 	    rx_byte;
    //status
    wire 	    is_transmitting;
