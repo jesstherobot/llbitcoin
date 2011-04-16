@@ -1,32 +1,32 @@
+
+`timescale 1ns/10ps
+
 module sha2_controller_tb;
+   
+   reg btn_north;
+   reg clk;
+   wire [7:0] led;
+   reg 	      RX;
+   wire       TX;
 
+   sha2_controller DUT (
+			.clk(clk),
+			.btn_north(btn_north),
+			.RX(RX),
+			.TX(TX),
+			.led(led),	 
+			);
 
-    
-    reg btn_north;
-    reg clk;
-    wire [7:0]led;
-    reg RX;
-    wire TX;
+   parameter PERIOD = 2;
+   initial begin
+      clk = 1'b0;
+      rst = 1'b0;
+      
+      
+   end
 
-    sha2_controller DUT (
-        .btn_north(btn_north),
-        .clk(clk),
-        .led(led),
-        .RX(RX),
-        .TX(TX)
-    );
-
-    parameter PERIOD = 2;
-initial begin
-    clk = 1'b0;
-    #(PERIOD/2);
-    forever
-        #(PERIOD/2) clk = ~clk;
-    
-end
-
-/*
-initial begin
+   /*
+    initial begin
     RX = 1'b0;
     btn_north = 1'b0;
     
@@ -35,7 +35,8 @@ initial begin
     #2; 
     btn_north = 1'b0;
 end
-*/
+    */
 
-
+   always #5 clk = ~clk;
+   
 endmodule

@@ -134,7 +134,7 @@ module sha256 (clk_i, rst_i, text_i, text_o, cmd_i, cmd_w_i, cmd_o);
     1       busy
     
     Round:
-    0       first round
+      0       first round
     1       internal round
     
     W:

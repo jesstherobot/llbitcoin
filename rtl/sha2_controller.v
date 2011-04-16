@@ -30,27 +30,31 @@ module sha2_controller(
    wire 	    rst;
    assign rst = btn_north;
 
-   
+   // UART signals
    //transmit high tells UART to start transmitting
    reg 		    transmit = 0;
    //8-bit value of data
    reg [7:0] 	    tx_byte;
-   
    //goes high when a byte is received
    wire 	    received;
-   
    //setto the value of the byte which has just been recoved when recived is raised
    wire [7:0] 	    rx_byte;
-   
    //status
    wire 	    is_transmitting;
    wire 	    is_receiving;
    wire 	    recv_error;
-   reg [31:0] 	    data_block;
 
-   //text buffers for sha256
+   // Input Handler signals
+   wire 	    ready;
+   reg 		    data_request = 0;
    
-
+   // SHA256 ssignals
+   wire [31:0] 	    text_i;
+   reg 	    cmd_w_i = 0;
+   reg [2:0] 	    cmd_i = 0;
+   wire [3:0] 	    cmd_o;
+   reg 		    sha_state = 0;
+   
    
    uart comm_uart (
 		   .clk(clk), 
@@ -77,10 +81,12 @@ module sha2_controller(
    input_handler inst_input (
 			     .clk(clk),
 			     .rst(rst),
-			     .byte_available(byte_available),
+			     .byte_available(received),
+			     .byte_in(rx_byte),
+			     .data_request(data_request),
 			     .command(command),
 			     .data_count(data_count),
-			     .buffer(buffer),
+			     .buffer(text_i),
 			     .ready(ready),
 			     .debug(debug));
    
@@ -91,17 +97,30 @@ module sha2_controller(
          led[7:0] <= 16'hFF;
       end 
       else begin
-         //do something
-         if (received) begin
-	    transmit <= 1;
-	    tx_byte <= 16'h4A;
+	 if (~cmd_o[3] && ~sha_state) begin
+	    data_request <= 1;
+	    sha_state <= 1;
 	 end
-	 else
-	   transmit <= 0;
-         //<signal> <= <clocked_value>;
+	 if (ready) begin
+	    data_request <= 0;
+	    cmd_w_i <= 1;
+	    cmd_i <= 3'b010;
+	 end
+	 if (~cmd_o[3] && sha_state) begin
+	    cmd_w_i <= 1;
+	    cmd_i <= 3'b110;
+	    sha_state <= 0;
+	          end
+      if (received) begin
+	 transmit <= 1;
+	 tx_byte <= 16'h4A;
       end
+      else
+	transmit <= 0;
+      //<signal> <= <clocked_value>;
    end
-   
+end
 
-   
+
+
 endmodule

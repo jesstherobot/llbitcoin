@@ -3,6 +3,7 @@ module input_handler(
 		     rst,
 		     byte_available,
 		     byte_in,
+		     data_request,
 		     command,
 		     data_count,
 		     buffer,
@@ -14,7 +15,8 @@ module input_handler(
    input 		 rst;
    input 		 byte_available;
    input [7:0] 		 byte_in;
-
+   input 		 data_request;
+   
 
    output reg [7:0] 	 command;
    output reg [15:0] 	 data_count;
@@ -31,7 +33,8 @@ module input_handler(
    parameter STATE_READ_CONTROL     = 8'h3;
    parameter STATE_READ_DATA_SIZE   = 8'h4;
    parameter STATE_READ_DATA        = 8'h5;
-
+   parameter STATE_WRITE_DATA = 8'h6;
+   
    parameter CHAR_L = 16'h4C;
    parameter CHAR_E = 16'h45;
    parameter CHAR_A = 16'h41;
@@ -44,9 +47,10 @@ module input_handler(
    reg [7:0] 		 r_STATE    = 'b0;
    reg [31:0] 		 r_ID_REG   = 'b0;
 
-   reg 			 r_low_byte          = 0;
+   reg 			 r_low_byte   = 0;
    reg [15:0] 		 r_count      = 0;
-   reg [2:0] 		 word_count    = 0;
+   reg [2:0] 		 word_count   = 0;
+   reg [31:0] 		 data_buffer  = 0;
    
 
    reg 			 r_prev_byte_available = 0;
@@ -76,7 +80,7 @@ module input_handler(
          r_ID_REG    <= 'b0;
          r_low_byte  <= 0;
 
-      end
+      end // if (rst)
       else begin
          //main state machine goes here
          case (r_STATE)
@@ -102,7 +106,7 @@ module input_handler(
               else begin
                  r_STATE    <= STATE_IDLE;
               end
-           end
+           end // case: STATE_READ_FIRST_BYTE
            STATE_READ_ID: begin 
               debug[3]        <= 1;
               if (pos_edge_byte_available) begin
@@ -138,22 +142,20 @@ module input_handler(
                       else begin
                          r_STATE <= STATE_READ_CONTROL;
                       end
-                   end
+                   end // case: CHAR_F
                    default: begin
                       debug[4] <= 0;
                       r_ID_REG    <= 'b0;
                       //didn't find the ID
                       r_STATE <= STATE_READ_FIRST_BYTE;
-                      
                    end
-                 endcase
-              end
+                 endcase // case (byte_in)
+              end // if (pos_edge_byte_available)
               //for debug only reset the system
               //r_STATE         <= STATE_IDLE;
-           end
+           end // case: STATE_READ_ID
            STATE_READ_CONTROL: begin
               debug[5]   <=    1;
-              
               if (pos_edge_byte_available) begin
                  if ((byte_in < CHAR_0) || (byte_in > CHAR_0 + 15)) begin
                     r_STATE    <=    STATE_READ_FIRST_BYTE;
@@ -164,7 +166,7 @@ module input_handler(
                     command    <=    (byte_in - CHAR_0);
                  end
               end
-           end
+           end // case: STATE_READ_CONTROL
            STATE_READ_DATA_SIZE: begin
               //read the size
               if (pos_edge_byte_available) begin
@@ -173,7 +175,6 @@ module input_handler(
                     debug[5]   <=    0;
                  end
                  else begin
-
                     //r_STATE    <=    STATE_READ_DATA_SIZE;
                     command    <=    (byte_in - CHAR_0);
                     if (r_low_byte) begin
@@ -184,12 +185,12 @@ module input_handler(
                     else begin
                        //high byte
                        data_count    <=  data_count[7:0] + (byte_in - CHAR_0);
-                       r_count       <=  data_count[7:0] + (byte_in - CHAR_0); 
+                       //       r_count       <=  data_count[7:0] + (byte_in - CHAR_0); 
                        r_STATE <= STATE_READ_DATA;
-                    end
-                 end                
-              end
-           end
+                    end // else: !if(r_low_byte)
+                 end // else: !if((byte_in < CHAR_0) || (byte_in > CHAR_0 + 15))
+              end // if (pos_edge_byte_available)
+           end // case: STATE_READ_DATA_SIZE
            STATE_READ_DATA : begin
               if (pos_edge_byte_available) begin
                  if ((byte_in < CHAR_0) || (byte_in > CHAR_0 + 15)) begin
@@ -198,24 +199,39 @@ module input_handler(
                  else begin
                     debug[5]   <=    ~debug[5];
 		    if (word_count == 4) begin
-		       ready <= 1;
 		       word_count <= 0;
-		       end
+		       r_count <= r_count + 1;
+		       r_STATE <= STATE_WRITE_DATA;
+		    end
 		    else begin
-		       buffer <= buffer << 4;
-		       buffer[3:0] <= (byte_in - CHAR_0);
-		    end		       
-                       //reading data
-		       //NEED TO READ DATA INTO THE BUFFER                          
-                    end
-                 end
-              end
-              default: begin
-                 command         <= 8'h0;
-                 r_STATE         <= STATE_IDLE;
-              end
-         endcase
+		       data_buffer <= data_buffer << 4;
+		       data_buffer[3:0] <= (byte_in - CHAR_0);
+		       r_STATE <= STATE_READ_DATA;
+		    end
+                    //reading data                        
+                 end // else: !if((byte_in < CHAR_0) || (byte_in > CHAR_0 + 15))
+              end // if (pos_edge_byte_available)
+           end // case: STATE_READ_DATA
+	   STATE_WRITE_DATA : begin
+	      if (data_request) begin
+		 buffer <= data_buffer;
+		 ready <= 1;
+		 if (r_count == data_count) begin
+		    ready <= 0;
+		    r_STATE <= STATE_IDLE;
+		 end
+		 else begin
+		    ready <= 0;
+		    r_STATE <= STATE_READ_DATA;
+		 end
+	      end // if (data_request)
+	   end // case: STATE_WRITE_DATA
+	   default: begin
+              command         <= 8'h0;
+              r_STATE         <= STATE_IDLE;
+	   end
+         endcase // case (r_STATE)
          
-      end
-   end
-endmodule
+      end // else: !if(rst)
+   end // always @ (posedge clk)
+endmodule // input_handler
