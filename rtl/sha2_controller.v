@@ -20,7 +20,7 @@ module sha2_controller(
    //input btn_east;
    //input btn_west;
    
-   output reg [7:0] led;
+   output reg [7:0] led = 8'hFF;
    
    input 	    RX; // Incoming serial line
    output 	    TX; // Outgoing serial line
@@ -47,9 +47,17 @@ module sha2_controller(
    // Input Handler signals
    wire 	    ready;
    reg 		    data_request = 0;
+   wire [7:0] 	    command;
+   wire [15:0] 	    data_count;
+   wire [255:0]     buffer;
+   
+   wire [7:0] 	    debug;
+   
+   
    
    // SHA256 ssignals
-   wire [31:0] 	    text_i;
+   reg [31:0] 	    text_i = 0;
+   wire [31:0] 	    text_o;
    reg 	    cmd_w_i = 0;
    reg [2:0] 	    cmd_i = 0;
    wire [3:0] 	    cmd_o;
@@ -86,7 +94,7 @@ module sha2_controller(
 			     .data_request(data_request),
 			     .command(command),
 			     .data_count(data_count),
-			     .buffer(text_i),
+			     .buffer(buffer),
 			     .ready(ready),
 			     .debug(debug));
    
@@ -110,16 +118,16 @@ module sha2_controller(
 	    cmd_w_i <= 1;
 	    cmd_i <= 3'b110;
 	    sha_state <= 0;
-	          end
-      if (received) begin
-	 transmit <= 1;
-	 tx_byte <= 16'h4A;
+	 end
+	 if (received) begin
+	    transmit <= 1;
+	    tx_byte <= 16'h4A;
+	 end
+	 else
+	   transmit <= 0;
+	 //<signal> <= <clocked_value>;
       end
-      else
-	transmit <= 0;
-      //<signal> <= <clocked_value>;
    end
-end
 
 
 

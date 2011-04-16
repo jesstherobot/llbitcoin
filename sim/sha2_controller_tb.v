@@ -1,42 +1,45 @@
-
-`timescale 1ns/10ps
+`timescale 1ns/1ns
 
 module sha2_controller_tb;
-   
-   reg btn_north;
-   reg clk;
+
+   reg rst = 0;
+   reg clk = 0;
    wire [7:0] led;
-   reg 	      RX;
+   wire       line;
    wire       TX;
+   
+   // And any other signals you need for your DUT
+   // such as clock, reset, data-bus...
 
-   sha2_controller DUT (
-			.clk(clk),
-			.btn_north(btn_north),
-			.RX(RX),
-			.TX(TX),
-			.led(led),	 
-			);
+   // And any clock generators, etc...
 
-   parameter PERIOD = 2;
-   initial begin
-      clk = 1'b0;
-      rst = 1'b0;
-      
-      
+   // Here's the UART signal generator...
+   behavioral_UART_tx tx_model(.line(line));
+
+   // and here's your device-under-test...
+   sha2_controller UUT(
+		       .clk(clk),
+		       .btn_north(rst),
+		       .RX(line),
+		       .TX(TX),
+		       .led(led));
+
+   // and here's the test stimulus generator:
+   initial begin: StimGen
+      // Hang around for a while...
+      #10;
+      // Use the Tx model to send a few characters to the DUT:
+      tx_model.send("L");
+      tx_model.send("1");
+      tx_model.send("1");
+      tx_model.send("2");
+      tx_model.send("3");
+      // Idle awhile:
+      #20;
+      // Send a newline character (LF = 10)
+      tx_model.send(10);
    end
 
-   /*
-    initial begin
-    RX = 1'b0;
-    btn_north = 1'b0;
-    
-    #2;
-    btn_north = 1'b1;
-    #2; 
-    btn_north = 1'b0;
-end
-    */
-
-   always #5 clk = ~clk;
+   always #10 clk = ~clk;
    
 endmodule
