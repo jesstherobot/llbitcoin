@@ -4,17 +4,32 @@ Description: a bitcoin implementation on an FPGA
 
 -Communication between the FPGA and the host computer is through a serial port
 
+-Communication string: in order to simplify communication with the HDL module, in order to detect data restart, ASCII will be used, this will also simplify the process of debugging, because data can be sent to the module on the command line
+	-the format of the data is as follows
+
+	-'L' 		: (1 byte) 		ID: identification character (this is chosen because it is not '0' - 'F' which is all the HEX values that can be sent to the core)
+	-'0' - 'F'	: (1 byte) 		COMMAND: command byte (the commands haven't been defined yet, but there will be only 15 of them in this version)
+	-'0' - 'F'	: (2 bytes) 	COUNT: the number of BYTES that will be received by the controller
+	-'0' - 'F'	: (COUNT bytes) DATA: the data that will be sent to the device
+
+	example:
+	"L1100123456789ABCDEF"
+		'L'
+		'1' COMMAND 1 (TBD)
+		'10' COUNT = 0x10 or 16
+		'0123456789ABCDEF' = DATA 
+
 
 -TODO:
 
 4/11/2011:
-	-Verify the UART is working at 9600 baud 
-		-toggle LED based on receiving data
-		-toggle LED when a specific byte is received
-		-return a byte back to the host
-	-Build a "input handler" module
+	-Verify the UART is working at 9600 baud - DONE 4/16
+		-toggle LED based on receiving data - DONE 4/16
+		-toggle LED when a specific byte is received - DONE 4/16
+		-return a byte back to the host - DONE 4/16
+	-Build a "input handler" module - DONE 4/16
 		-this will wrap around the UART input component, will parse all the 
-		information in an easy to digest format for the controller
+		information in an easy to digest format for the controller - DONE 4/16
 	-Build a "output handler" module
 		-this will wrap around the UART output component, will receive commands and data in a buffer, this data will be shifted out a byte at a time to the host
 	-Build the "SHA256 Controller"
