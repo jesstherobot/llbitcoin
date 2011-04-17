@@ -39,8 +39,8 @@
 
 `timescale 1ns/10ps
 
-`define SHA256_TEST		"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
-`define SHA256_TEST_PADDING	{1'b1,63'b0,448'b0,64'd448}	// 448 bit
+`define SHA256_TEST		"abc"
+`define SHA256_TEST_PADDING	{1'b1,423'b0,64'd24}	
 `define SHA256_TEST_RESULT	256'h248d6a61_d20638b8_e5c02693_0c3e6039_a33ce459_64ff2167_f6ecedd4_19db06c1
 
 module test_sha;
@@ -98,7 +98,7 @@ reg [511:0] tmp_i;
 reg [255:0] tmp_o;
 reg [31:0] tmp;
 begin
-	all_message = {`SHA256_TEST,`SHA256_TEST_PADDING};
+	all_message = {"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",1'b1,511'b0,64'd448};
 	tmp_i = all_message[1023:512];
 	tmp_o = `SHA256_TEST_RESULT;
 	
@@ -136,7 +136,6 @@ begin
 	
 	#100;
 	
-	
 	tmp_i = all_message[511:0];
 	@(posedge clk);
 	cmd_i = 3'b110;
@@ -155,6 +154,7 @@ begin
 	@(posedge clk);
 	@(posedge clk);
 	@(posedge clk);
+ 
 
 	while (cmd_o[3])
 		@(posedge clk);

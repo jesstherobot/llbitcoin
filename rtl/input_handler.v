@@ -85,7 +85,7 @@ module input_handler(
          case (r_STATE)
            STATE_IDLE: begin
 	      ready <= 0;
-	                    debug[0]        <= 1;
+	      debug[0]        <= 1;
               command         <= 8'h0;
               data_count      <= 16'h3;
 	      r_ID_REG[31:23] <= 'b0;

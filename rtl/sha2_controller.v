@@ -71,12 +71,14 @@ module sha2_controller(
    reg 		    sha_state = 0;
    
    // Top level signals
-   reg [255:0] 	    input_data_buffer = 0;
-   reg [3:0] 	    input_data_count = 8;
+   reg [511:0] 	    input_data_buffer = 0;
+   reg [5:0] 	    input_data_count = 16;
    reg [255:0] 	    output_data_buffer = 0;
    reg [3:0] 	    output_data_count = 10;
    reg [7:0] 	    state = 0;
    reg [2:0] 	    sha_count = 7;
+   reg [1023:0]     all_message = {"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",1'b1,511'b0,64'd448};
+   
    
    uart comm_uart (
 		   .clk(clk), 
@@ -121,11 +123,12 @@ module sha2_controller(
       else begin
 	 case (state)
 	   STATE_IDLE: begin //0
-	      input_data_count <= 8;
+	      input_data_count <= 16;
 	      data_request <= 1;
 	      sha_count <= 7;
 	      if (ready) begin
-		 input_data_buffer <= buffer;
+		 input_data_buffer <= all_message[1023:512];
+		 //input_data_buffer <= buffer;
 		 data_request <= 0;
 		 cmd_w_i <= 1;
 		 cmd_i <= 3'b010;
@@ -135,10 +138,13 @@ module sha2_controller(
 	   end // case: STATE_IDLE
 	   STATE_INPUT_DATA: begin //1
 	      cmd_w_i <= 0;
-	      if (input_data_count == 0) state <= STATE_WAIT_0;
+	      if (input_data_count == 0) begin
+		 if (cmd_i[2]) state <= STATE_WAIT_1;
+		 else state <= STATE_WAIT_0;
+	      end
 	      else begin
-		 text_i <= input_data_buffer[255:224];
-	       	 input_data_buffer <= input_data_buffer << 32;
+		 text_i <= input_data_buffer[511:480];
+		 input_data_buffer <= input_data_buffer << 32;
 		 input_data_count <= input_data_count - 1;
 		 cmd_w_i <= 0;
 		 state <= STATE_INPUT_DATA;
@@ -148,7 +154,9 @@ module sha2_controller(
 	      if (~cmd_o[3]) begin
 		 cmd_w_i <= 1;
 		 cmd_i <= 3'b110;
-		 state <= STATE_WAIT_1;
+		 input_data_buffer <= all_message[511:0];
+		 input_data_count <= 16;
+		 state <= STATE_INPUT_DATA;
 	      end
 	      else begin
 		 state <= STATE_WAIT_0;
