@@ -51,11 +51,13 @@ module input_handler(
    reg [15:0] 		 r_count      = 0;
    reg [255:0] 		 data_buffer  = 0;
    reg 			 r_prev_byte_available = 0;
+   reg [7:0] 		 byte_converted = 0;
+   
 
    //Wire
    wire 		 pos_edge_byte_available;
 
-    //Assign
+   //Assign
    assign pos_edge_byte_available = (byte_available & ~r_prev_byte_available);
 
    //Synchronous
@@ -67,7 +69,7 @@ module input_handler(
 
       if (rst) begin
          command     <= 8'h0;
-         data_count  <= 16'hF;
+         data_count  <= 16'h3;
          buffer      <= 0;
          debug       <= 'b0; 
 	 ready <= 0;
@@ -84,7 +86,7 @@ module input_handler(
            STATE_IDLE: begin
               debug[0]        <= 1;
               command         <= 8'h0;
-              data_count      <= 16'hF;
+              data_count      <= 16'h3;
 	      r_ID_REG[31:23] <= 'b0;
 	      r_count <= 0;
 	      if (pos_edge_byte_available) begin
@@ -199,17 +201,22 @@ module input_handler(
 		 r_STATE <= STATE_WRITE_DATA;
 	      end
 	      if (pos_edge_byte_available) begin
-                 if ((byte_in < CHAR_0) || (byte_in > CHAR_0 + 15)) begin
-                    r_STATE    <=    STATE_READ_FIRST_BYTE;
-                 end
-                 else begin
-                    debug[5]   <=    ~debug[5];
-      		    data_buffer <= data_buffer << 8;
-		    data_buffer[7:0] <= (byte_in - CHAR_0);
-		    r_count <= r_count + 1;
-		    r_STATE <= STATE_READ_DATA;
-	            //reading data                        
-                 end // else: !if((byte_in < CHAR_0) || (byte_in > CHAR_0 + 15))
+		 //   if ((byte_in < CHAR_0) || (byte_in > CHAR_0 + 15)) begin
+		 //      r_STATE    <=    STATE_READ_FIRST_BYTE;
+		 //   end
+		 //   else begin
+                 debug[5]   <=    ~debug[5];
+      		 data_buffer <= data_buffer << 8;
+		 if ((byte_in >= CHAR_0) && (byte_in <= CHAR_0+15))
+		   data_buffer <= (byte_in - CHAR_0);
+		 else if ((byte_in >= CHAR_A) && (byte_in <= CHAR_F))
+		   data_buffer <= (byte_in - 55);
+		 else
+		   r_STATE <= STATE_READ_FIRST_BYTE;
+		 r_count <= r_count + 1;
+		 r_STATE <= STATE_READ_DATA;
+	         //reading data                        
+		 //   end // else: !if((byte_in < CHAR_0) || (byte_in > CHAR_0 + 15))
 	      end // if (pos_edge_byte_available)
            end // case: STATE_READ_DATA
 	   STATE_WRITE_DATA : begin

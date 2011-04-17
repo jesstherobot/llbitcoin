@@ -111,32 +111,32 @@ module input_handler_tb;
       #	144		
 	byte_available = 0;
       #	150	
-	byte_in = 16'h3A;
+	byte_in = 16'h41;
       byte_available = 1;
       #	154		
 	byte_available = 0;
       #	160	
-	byte_in = 16'h3B;
+	byte_in = 16'h42;
       byte_available = 1;
       #	164		
 	byte_available = 0;
       #	170	
-	byte_in = 16'h3C;
+	byte_in = 16'h43;
       byte_available = 1;
       #	174		
 	byte_available = 0;
       #	180	
-	byte_in = 16'h3D;
+	byte_in = 16'h44;
       byte_available = 1;
       #	184		
 	byte_available = 0;
       #	190	
-	byte_in = 16'h3E;
+	byte_in = 16'h45;
       byte_available = 1;
       #	194		
 	byte_available = 0;
       #	200	
-	byte_in = 16'h3F;
+	byte_in = 16'h46;
       byte_available = 1;
       #	214		
 	byte_available = 0;

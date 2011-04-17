@@ -121,7 +121,7 @@ module sha2_controller(
 	 end
 	 if (received) begin
 	    transmit <= 1;
-	    tx_byte <= 16'h4A;
+	    tx_byte <= rx_byte;
 	 end
 	 else
 	   transmit <= 0;

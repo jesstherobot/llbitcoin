@@ -1,3 +1,5 @@
+//Modified from Johnathan Bromley's code on comp.lang.verilog
+
 `timescale 1ns/1ns
 
 module sha2_controller_tb;
@@ -7,16 +9,11 @@ module sha2_controller_tb;
    wire [7:0] led;
    wire       line;
    wire       TX;
-   
-   // And any other signals you need for your DUT
-   // such as clock, reset, data-bus...
 
-   // And any clock generators, etc...
-
-   // Here's the UART signal generator...
+   //  UART signal generator
    behavioral_UART_tx tx_model(.line(line));
 
-   // and here's your device-under-test...
+   // Unit Under Test
    sha2_controller UUT(
 		       .clk(clk),
 		       .btn_north(rst),
@@ -24,11 +21,10 @@ module sha2_controller_tb;
 		       .TX(TX),
 		       .led(led));
 
-   // and here's the test stimulus generator:
+   // Test stimulus generator
    initial begin: StimGen
-      // Hang around for a while...
       #10;
-      // Use the Tx model to send a few characters to the DUT:
+      // Use the Tx model to send characters to the UUT:
       tx_model.send("L");
       tx_model.send("1");
       tx_model.send("1");
