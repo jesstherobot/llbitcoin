@@ -30,6 +30,15 @@ module sha2_controller(
    wire 	    rst;
    assign rst = btn_north;
 
+   // STATES
+   parameter STATE_IDLE = 8'h0;
+   parameter STATE_INPUT_DATA = 8'h1;
+   parameter STATE_WAIT_0 = 8'h2;
+   parameter STATE_WAIT_1 = 8'h3;
+   parameter STATE_READ_0 = 8'h4;
+   parameter STATE_READ_1 = 8'h5;
+   
+   
    // UART signals
    //transmit high tells UART to start transmitting
    reg 		    transmit = 0;
@@ -53,16 +62,21 @@ module sha2_controller(
    
    wire [7:0] 	    debug;
    
-   
-   
    // SHA256 ssignals
    reg [31:0] 	    text_i = 0;
    wire [31:0] 	    text_o;
-   reg 	    cmd_w_i = 0;
+   reg 		    cmd_w_i = 0;
    reg [2:0] 	    cmd_i = 0;
    wire [3:0] 	    cmd_o;
    reg 		    sha_state = 0;
    
+   // Top level signals
+   reg [255:0] 	    input_data_buffer = 0;
+   reg [3:0] 	    input_data_count = 8;
+   reg [255:0] 	    output_data_buffer = 0;
+   reg [3:0] 	    output_data_count = 10;
+   reg [7:0] 	    state = 0;
+   reg [2:0] 	    sha_count = 7;
    
    uart comm_uart (
 		   .clk(clk), 
@@ -103,22 +117,74 @@ module sha2_controller(
       if (rst) begin
          transmit <= 0;
          led[7:0] <= 16'hFF;
-      end 
+      end
       else begin
-	 if (~cmd_o[3] && ~sha_state) begin
-	    data_request <= 1;
-	    sha_state <= 1;
-	 end
-	 if (ready) begin
-	    data_request <= 0;
-	    cmd_w_i <= 1;
-	    cmd_i <= 3'b010;
-	 end
-	 if (~cmd_o[3] && sha_state) begin
-	    cmd_w_i <= 1;
-	    cmd_i <= 3'b110;
-	    sha_state <= 0;
-	 end
+	 case (state)
+	   STATE_IDLE: begin //0
+	      input_data_count <= 8;
+	      data_request <= 1;
+	      sha_count <= 7;
+	      if (ready) begin
+		 input_data_buffer <= buffer;
+		 data_request <= 0;
+		 cmd_w_i <= 1;
+		 cmd_i <= 3'b010;
+		 state <= STATE_INPUT_DATA;
+	      end
+	      else state <= STATE_IDLE;
+	   end // case: STATE_IDLE
+	   STATE_INPUT_DATA: begin //1
+	      cmd_w_i <= 0;
+	      if (input_data_count == 0) state <= STATE_WAIT_0;
+	      else begin
+		 text_i <= input_data_buffer[255:224];
+	       	 input_data_buffer <= input_data_buffer << 32;
+		 input_data_count <= input_data_count - 1;
+		 cmd_w_i <= 0;
+		 state <= STATE_INPUT_DATA;
+	      end
+	   end
+	   STATE_WAIT_0: begin //2
+	      if (~cmd_o[3]) begin
+		 cmd_w_i <= 1;
+		 cmd_i <= 3'b110;
+		 state <= STATE_WAIT_1;
+	      end
+	      else begin
+		 state <= STATE_WAIT_0;
+	      end
+	   end // case: STATE_WAIT_0
+	   STATE_WAIT_1: begin //3
+	      cmd_w_i <= 0;
+	      sha_count <= sha_count - 1;
+	      if (sha_count == 0) begin
+		 if (~cmd_o[3]) begin
+		    cmd_w_i <= 1;
+		    cmd_i <= 3'b001;
+		    state <= STATE_READ_0;
+		 end
+		 else begin
+		    sha_count <= 7;
+		    state <= STATE_WAIT_1;
+		 end
+	      end
+	      else state <= STATE_WAIT_1;
+	   end
+	   STATE_READ_0: begin //4
+	      cmd_w_i <= 0;
+	      state <= STATE_READ_1;
+	      // clock tick; core doesn't react quickly enough
+	   end
+	   STATE_READ_1: begin //5
+	      if (output_data_count == 0) state <= STATE_IDLE;
+	      else begin
+		 output_data_buffer[31:0] <= text_o;
+		 output_data_buffer[255:32] <= output_data_buffer[223:0];
+		 output_data_count <= output_data_count - 1;
+		 state <= STATE_READ_1;
+	      end
+	   end
+	 endcase // case (state)
 	 if (received) begin
 	    transmit <= 1;
 	    tx_byte <= rx_byte;
@@ -126,9 +192,9 @@ module sha2_controller(
 	 else
 	   transmit <= 0;
 	 //<signal> <= <clocked_value>;
-      end
-   end
+      end // else: !if(rst)
+   end // always @ (posedge clk)
 
 
 
-endmodule
+endmodule // sha2_controller

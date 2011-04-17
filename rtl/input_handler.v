@@ -84,7 +84,8 @@ module input_handler(
          //main state machine goes here
          case (r_STATE)
            STATE_IDLE: begin
-              debug[0]        <= 1;
+	      ready <= 0;
+	                    debug[0]        <= 1;
               command         <= 8'h0;
               data_count      <= 16'h3;
 	      r_ID_REG[31:23] <= 'b0;
@@ -208,9 +209,9 @@ module input_handler(
                  debug[5]   <=    ~debug[5];
       		 data_buffer <= data_buffer << 8;
 		 if ((byte_in >= CHAR_0) && (byte_in <= CHAR_0+15))
-		   data_buffer <= (byte_in - CHAR_0);
+		   data_buffer[7:0] <= (byte_in - CHAR_0);
 		 else if ((byte_in >= CHAR_A) && (byte_in <= CHAR_F))
-		   data_buffer <= (byte_in - 55);
+		   data_buffer[7:0] <= (byte_in - 55);
 		 else
 		   r_STATE <= STATE_READ_FIRST_BYTE;
 		 r_count <= r_count + 1;
